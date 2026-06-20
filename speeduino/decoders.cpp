@@ -579,7 +579,7 @@ void triggerPri_missingTooth(void)
 
         if( (currentStatus.hasSync == false || currentStatus.RPM < 2000) && configPage4.trigPatternSec == SEC_TRIGGER_POLL)
         {
-          if (configPage10.PollLevelTeeth > 1 && toothCurrentCount == configPage10.PollLevelTeeth) // at selected tooth check if the cam sensor is high or low in poll level mode      
+          if (configPage10.PollLevelTeeth > 1 && (toothCurrentCount >= configPage10.PollLevelTeeth - 1 && toothCurrentCount <= configPage10.PollLevelTeeth + 1)) // at selected tooth check if the cam sensor is high or low in poll level mode      
             configPage4.PollLevelPolarity == READ_SEC_TRIGGER() ?  revolutionOne = 1 : revolutionOne = 0;
         }
 
