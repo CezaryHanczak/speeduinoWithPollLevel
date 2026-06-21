@@ -1182,7 +1182,7 @@ struct config9 {
 #endif
 
 /** Page 10 - No specific purpose. Created initially for the cranking enrich curve.
-193 bytes long.
+194 bytes long.
 See ini file for further info (Config Page 11 in the ini).
 */
 struct config10 {
