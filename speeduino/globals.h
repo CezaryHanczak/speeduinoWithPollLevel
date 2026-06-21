@@ -1361,6 +1361,7 @@ struct config10 {
 
   //Byte 192
   uint8_t PollLevelTeeth; 
+  byte unused_10_193; 
 
 #if defined(CORE_AVR)
   };
