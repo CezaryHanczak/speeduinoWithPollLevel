@@ -1360,8 +1360,7 @@ struct config10 {
   byte lnchCtrlVss;
 
   //Byte 192
-  uint8_t PollLevelTeeth; 
-  byte unused_10_193; 
+  uint16_t PollLevelTeeth; 
 
 #if defined(CORE_AVR)
   };
