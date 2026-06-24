@@ -577,12 +577,6 @@ void triggerPri_missingTooth(void)
       {
         bool isMissingTooth = false;
 
-        if( (currentStatus.hasSync == false || currentStatus.RPM < 2000) && configPage4.trigPatternSec == SEC_TRIGGER_POLL)
-        {
-          if (configPage10.PollLevelTeeth > 1 && (toothCurrentCount >= configPage10.PollLevelTeeth && toothCurrentCount <= configPage10.PollLevelTeeth + 2)) // at selected tooth check if the cam sensor is high or low in poll level mode      
-            configPage4.PollLevelPolarity == READ_SEC_TRIGGER() ?  revolutionOne = 1 : revolutionOne = 0;
-        }
-
         /*
         Performance Optimisation:
         Only need to try and detect the missing tooth if:
@@ -626,6 +620,10 @@ void triggerPri_missingTooth(void)
                 {
                   if (configPage4.PollLevelPolarity == READ_SEC_TRIGGER()) { revolutionOne = 1; }
                   else { revolutionOne = 0; }
+                } else if (configPage4.trigPatternSec == SEC_TRIGGER_POLL && configPage10.PollLevelTeeth > 1 
+                  && (toothCurrentCount >= configPage10.PollLevelTeeth && toothCurrentCount <= configPage10.PollLevelTeeth + 2)) // at selected tooth check if the cam sensor is high or low in poll level mode
+                {
+                       configPage4.PollLevelPolarity == READ_SEC_TRIGGER() ?  revolutionOne = 1 : revolutionOne = 0;
                 }
                 else {revolutionOne = !revolutionOne;} //Flip sequential revolution tracker if poll level is not used
                 toothOneMinusOneTime = toothOneTime;
