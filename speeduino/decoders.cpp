@@ -83,6 +83,7 @@ volatile unsigned long targetGap2;
 volatile unsigned long targetGap3;
 volatile unsigned long toothOneTime = 0; //The time (micros()) that tooth 1 last triggered
 volatile unsigned long toothOneMinusOneTime = 0; //The 2nd to last time (micros()) that tooth 1 last triggered
+volatile bool pollLevelSynced = false;
 volatile bool revolutionOne = 0; // For sequential operation, this tracks whether the current revolution is 1 or 2 (not 1)
 volatile bool revolutionLastOne = 0; // used to identify in the rover pattern which has a non unique primary trigger something unique - has the secondary tooth changed.
 
@@ -554,6 +555,7 @@ void triggerSetup_missingTooth(void)
   thirdToothCount = 0;
   toothOneTime = 0;
   toothOneMinusOneTime = 0;
+  pollLevelSynced = false;
   MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle * (configPage4.triggerMissingTeeth + 1U)); //Minimum 50rpm. (3333uS is the time per degree at 50rpm)
 
   if( (configPage4.TrigSpeed == CRANK_SPEED) && ( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) || (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage6.vvtEnabled > 0)) ) { BIT_SET(decoderState, BIT_DECODER_HAS_SECONDARY); }
@@ -576,6 +578,15 @@ void triggerPri_missingTooth(void)
       if( (toothLastToothTime > 0) && (toothLastMinusOneToothTime > 0) )
       {
         bool isMissingTooth = false;
+
+        if(currentStatus.hasSync == false && configPage4.trigPatternSec == SEC_TRIGGER_POLL)
+        {
+          if (configPage10.PollLevelTeeth > 1 && toothCurrentCount == configPage10.PollLevelTeeth)
+          {
+            configPage4.PollLevelPolarity == READ_SEC_TRIGGER() ? revolutionOne = 1 : revolutionOne = 0;
+            pollLevelSynced  = true;
+          }
+        }
 
         /*
         Performance Optimisation:
@@ -601,6 +612,7 @@ void triggerPri_missingTooth(void)
             { 
                 //This occurs when we're at tooth #1, but haven't seen all the other teeth. This indicates a signal issue so we flag lost sync so this will attempt to resync on the next revolution.
                 currentStatus.hasSync = false;
+                pollLevelSynced  = false;
                 BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); //No sync at all, so also clear HalfSync bit.
                 currentStatus.syncLossCounter++;
             }
@@ -620,12 +632,15 @@ void triggerPri_missingTooth(void)
                 {
                   if (configPage4.PollLevelPolarity == READ_SEC_TRIGGER()) { revolutionOne = 1; }
                   else { revolutionOne = 0; }
-                } else if (configPage4.trigPatternSec == SEC_TRIGGER_POLL && configPage10.PollLevelTeeth > 1 
-                  && (toothCurrentCount >= configPage10.PollLevelTeeth && toothCurrentCount <= configPage10.PollLevelTeeth + 2)) // at selected tooth check if the cam sensor is high or low in poll level mode
-                {
-                       configPage4.PollLevelPolarity == READ_SEC_TRIGGER() ?  revolutionOne = 1 : revolutionOne = 0;
                 }
-                else {revolutionOne = !revolutionOne;} //Flip sequential revolution tracker if poll level is not used
+                else if (configPage4.trigPatternSec == SEC_TRIGGER_POLL && configPage10.PollLevelTeeth > 1 && currentStatus.hasSync == true)
+                {
+                   revolutionOne = !revolutionOne;
+                }
+                else if (configPage4.trigPatternSec != SEC_TRIGGER_POLL)
+                {
+                   revolutionOne = !revolutionOne;
+                } //Flip sequential revolution tracker if poll level is not used
                 toothOneMinusOneTime = toothOneTime;
                 toothOneTime = curTime;
 
@@ -633,7 +648,7 @@ void triggerPri_missingTooth(void)
                 if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) || (configPage2.injLayout == INJ_SEQUENTIAL) )
                 {
                   //If either fuel or ignition is sequential, only declare sync if the cam tooth has been seen OR if the missing wheel is on the cam
-                  if( (secondaryToothCount > 0) || (configPage4.TrigSpeed == CAM_SPEED) || (configPage4.trigPatternSec == SEC_TRIGGER_POLL) || (configPage2.strokes == TWO_STROKE) )
+                  if( (secondaryToothCount > 0) || (configPage4.TrigSpeed == CAM_SPEED) || (configPage4.trigPatternSec == SEC_TRIGGER_POLL && pollLevelSynced == true) || (configPage2.strokes == TWO_STROKE) )
                   {
                     currentStatus.hasSync = true;
                     BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); //the engine is fully synced so clear the Half Sync bit                    
